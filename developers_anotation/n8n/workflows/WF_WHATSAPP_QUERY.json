@@ -1,0 +1,155 @@
+{
+  "name": "WF_WHATSAPP_QUERY",
+  "description": "Canal principal WhatsApp - consultas y enrutamiento IA",
+  "nodes": [
+    {
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "path": "whatsapp-incoming",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Extraer Datos",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "phone", "value": "={{ $json.data.key.remoteJid.replace('@s.whatsapp.net', '') }}" },
+            { "name": "message", "value": "={{ $json.data.message.conversation || $json.data.message.extendedTextMessage?.text || '' }}" },
+            { "name": "isAudio", "value": "={{ !!$json.data.message.audioMessage }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Validar Teléfono",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "authorized_phones",
+        "filters": {
+          "conditions": [
+            { "keyName": "phone", "keyValue": "={{ $json.phone }}" },
+            { "keyName": "active", "keyValue": "true" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "No Autorizado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { message: 'No autorizado' } }}"
+      }
+    },
+    {
+      "name": "Es Audio?",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json.isAudio }}", "value2": true }]
+        }
+      }
+    },
+    {
+      "name": "Transcribir Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "whisper-1" },
+            { "name": "file", "parameterType": "formBinaryData", "inputDataFieldName": "audio" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GPT Clasificador",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Sos el asistente virtual de un pequeño comercio. Clasificá el mensaje en: SALES_QUERY, STOCK_QUERY, PURCHASE_CREATE, EXPENSE_CREATE, GENERAL_QUERY. Respondé únicamente JSON con { intent, params }."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.message }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Router Intención",
+      "type": "n8n-nodes-base.switch",
+      "parameters": {
+        "rules": {
+          "rules": [
+            { "value": "SALES_QUERY" },
+            { "value": "STOCK_QUERY" },
+            { "value": "PURCHASE_CREATE" },
+            { "value": "EXPENSE_CREATE" },
+            { "value": "GENERAL_QUERY" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Consultar Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM vw_daily_sales WHERE sale_date = CURRENT_DATE"
+      }
+    },
+    {
+      "name": "Guardar Conversación",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "insert",
+        "tableId": "ai_conversations",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "phone", "fieldValue": "={{ $json.phone }}" },
+            { "fieldId": "role", "fieldValue": "user" },
+            { "fieldId": "content", "fieldValue": "={{ $json.message }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.EVOLUTION_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $json.phone }}" },
+            { "name": "text", "value": "={{ $json.response }}" }
+          ]
+        }
+      }
+    }
+  ]
+}

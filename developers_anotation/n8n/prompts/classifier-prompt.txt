@@ -1,0 +1,17 @@
+Clasificá el siguiente mensaje del dueño de un kiosco en UNA única intención.
+
+Categorías posibles:
+- SALES_QUERY: consultas sobre ventas, facturación, cuánto vendió
+- STOCK_QUERY: consultas sobre stock, inventario, productos disponibles
+- PURCHASE_CREATE: registrar una compra/recepción de mercadería
+- EXPENSE_CREATE: registrar un gasto operativo
+- GENERAL_QUERY: resumen general, recomendaciones, estado del negocio
+
+Respondé ÚNICAMENTE con JSON válido:
+{ "intent": "CATEGORIA", "params": {} }
+
+Ejemplos:
+"¿Cuánto vendí hoy?" → { "intent": "SALES_QUERY", "params": { "period": "today" } }
+"Compré 24 Coca Cola" → { "intent": "PURCHASE_CREATE", "params": { "product": "Coca Cola", "quantity": 24 } }
+"Gasté 12 mil en bolsas" → { "intent": "EXPENSE_CREATE", "params": { "description": "Bolsas", "amount": 12000 } }
+"¿Qué debería comprar mañana?" → { "intent": "GENERAL_QUERY", "params": { "type": "recommendations" } }

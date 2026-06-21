@@ -1,0 +1,16 @@
+{
+  "name": "WF_REGISTER_PURCHASE",
+  "description": "Registro de compras via WhatsApp con confirmación",
+  "trigger": "Sub-workflow desde WF_WHATSAPP_QUERY cuando intent=PURCHASE_CREATE",
+  "flow": [
+    "GPT extrae { product, quantity }",
+    "Buscar producto por nombre en Supabase (ilike)",
+    "Si no encuentra → pedir aclaración",
+    "Enviar confirmación: 'Detecté: Producto X, Cantidad Y. ¿Confirmar?'",
+    "Esperar respuesta SI/NO",
+    "Si SI → INSERT purchases + purchase_items (trigger suma stock)",
+    "Responder: 'Compra registrada'"
+  ],
+  "gpt_extractor_prompt": "Extraé producto y cantidad del mensaje. Respondé JSON: { \"product\": \"nombre\", \"quantity\": number }",
+  "confirmation_message": "Detecté:\nProducto: {{product}}\nCantidad: {{quantity}}\n\n¿Confirmar?\nRespondé SI o NO"
+}

@@ -1,0 +1,75 @@
+{
+  "name": "WF_ALERTS_CRON",
+  "description": "Alertas automáticas de stock y recomendaciones",
+  "nodes": [
+    {
+      "name": "Cron Stock Bajo",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 1 }] }
+      }
+    },
+    {
+      "name": "Consultar Stock Crítico",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "vw_low_stock"
+      }
+    },
+    {
+      "name": "Enviar Alerta",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "method": "POST",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "number", "value": "={{ $env.OWNER_PHONE }}" },
+            { "name": "text", "value": "⚠️ Stock Bajo\n\nProducto: {{ $json.name }}\nStock: {{ $json.stock_current }}\nMínimo: {{ $json.stock_minimum }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Registrar Alerta",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "insert",
+        "tableId": "alerts",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "type", "fieldValue": "={{ $json.status }}" },
+            { "fieldId": "title", "fieldValue": "={{ $json.name }}" },
+            { "fieldId": "description", "fieldValue": "Stock: {{ $json.stock_current }} | Mínimo: {{ $json.stock_minimum }}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cron Recomendación Diaria",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 20 * * *" }]
+        }
+      }
+    },
+    {
+      "name": "Consultar Recomendaciones",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "vw_restock_recommendations"
+      }
+    },
+    {
+      "name": "Consultar Sin Movimiento",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "vw_no_movement_products"
+      }
+    }
+  ]
+}

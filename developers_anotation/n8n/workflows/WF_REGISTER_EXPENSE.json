@@ -1,0 +1,14 @@
+{
+  "name": "WF_REGISTER_EXPENSE",
+  "description": "Registro de gastos via WhatsApp con confirmación",
+  "trigger": "Sub-workflow desde WF_WHATSAPP_QUERY cuando intent=EXPENSE_CREATE",
+  "flow": [
+    "GPT extrae { description, amount }",
+    "Enviar confirmación",
+    "Esperar SI/NO",
+    "Si SI → INSERT expenses",
+    "Responder: 'Gasto registrado'"
+  ],
+  "gpt_extractor_prompt": "Extraé descripción e importe. Respondé JSON: { \"description\": \"concepto\", \"amount\": number }",
+  "confirmation_message": "Detecté:\nConcepto: {{description}}\nImporte: ${{amount}}\n\n¿Confirmar?\nRespondé SI o NO"
+}
