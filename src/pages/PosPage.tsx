@@ -3,15 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import BarcodeScanner from '../components/BarcodeScanner';
 import Cart from '../components/Cart';
 import PaymentSelector from '../components/PaymentSelector';
+import ProductSearchModal from '../components/ProductSearchModal';
 import Modal from '../components/Modal';
-import ProductForm from '../components/ProductForm';
 import ManualProductForm from '../components/ManualProductForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PageCard from '../components/ui/PageCard';
+import GradientButton from '../components/ui/GradientButton';
+import { subpageContentClass } from '../components/layout/subpageContent';
 import { useCartStore } from '../stores/cartStore';
 import { useCashStore } from '../stores/cashStore';
 import * as productService from '../services/productService';
 import * as saleService from '../services/saleService';
-import type { PaymentMethod, CreateProductInput } from '../types';
+import type { PaymentMethod, Product } from '../types';
 import { formatCurrency } from '../utils/format';
 
 export default function PosPage() {
@@ -24,42 +27,58 @@ export default function PosPage() {
   const calculateTotal = useCartStore((s) => s.calculateTotal);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [showNewProduct, setShowNewProduct] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
-  const [unknownBarcode, setUnknownBarcode] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successAmount, setSuccessAmount] = useState(0);
   const [error, setError] = useState('');
 
-  const handleScan = useCallback(async (barcode: string) => {
+  const handleScan = useCallback(async (input: string) => {
     setError('');
-    try {
-      const product = await productService.getByBarcode(barcode);
-      if (product) {
-        addProduct(product);
-      } else {
-        setUnknownBarcode(barcode);
-        setShowNewProduct(true);
-      }
-    } catch {
-      setError('Error al buscar producto');
-    }
-  }, [addProduct]);
+    const query = input.trim();
+    if (!query) return;
 
-  const handleCreateProduct = async (data: CreateProductInput) => {
     setLoading(true);
     try {
-      const product = await productService.createProduct(data);
-      addProduct(product);
-      setShowNewProduct(false);
-      setUnknownBarcode('');
+      const byBarcode = await productService.getByBarcode(query);
+      if (byBarcode) {
+        addProduct(byBarcode);
+        return;
+      }
+
+      const results = await productService.searchProducts(query);
+
+      if (results.length === 0) {
+        setError(
+          'No se encontró ningún producto. Cargalo en Productos o usá + Producto Manual.'
+        );
+        return;
+      }
+
+      if (results.length === 1) {
+        addProduct(results[0]);
+        return;
+      }
+
+      setSearchQuery(query);
+      setSearchResults(results);
+      setShowSearch(true);
     } catch {
-      setError('Error al crear producto');
+      setError('Error al buscar producto');
     } finally {
       setLoading(false);
     }
+  }, [addProduct]);
+
+  const handleSelectProduct = (product: Product) => {
+    addProduct(product);
+    setShowSearch(false);
+    setSearchResults([]);
+    setSearchQuery('');
   };
 
   const handleCharge = async () => {
@@ -113,70 +132,72 @@ export default function PosPage() {
 
   if (!session) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-600 text-lg font-medium mb-4">No hay caja abierta</p>
-        <button
-          onClick={() => navigate('/open')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium"
-        >
+      <div className={`${subpageContentClass} max-w-lg py-12`}>
+        <p className="text-center text-lg font-medium text-[#ef4444]">No hay caja abierta</p>
+        <GradientButton fullWidth={false} className="px-8" onClick={() => navigate('/open')}>
           Abrir Caja
-        </button>
+        </GradientButton>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <>
       {success && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-green-600/90">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#16a34a]/90">
           <div className="text-center text-white">
-            <p className="text-3xl font-bold mb-2">VENTA REGISTRADA</p>
-            <p className="text-5xl font-bold">{formatCurrency(successAmount)}</p>
+            <p className="mb-2 text-2xl font-bold sm:text-3xl">VENTA REGISTRADA</p>
+            <p className="text-4xl font-bold sm:text-5xl">{formatCurrency(successAmount)}</p>
           </div>
         </div>
       )}
 
-      <BarcodeScanner onScan={handleScan} disabled={loading} />
+      <div className={`${subpageContentClass} w-full max-w-3xl`}>
+      <PageCard className="w-full max-w-3xl space-y-4">
+        <BarcodeScanner onScan={handleScan} disabled={loading} />
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setShowManual(true)}
-          className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
-        >
-          + Producto Manual
-        </button>
-        <button
-          onClick={() => setShowCancel(true)}
-          className="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100"
-        >
-          Anular Última
-        </button>
-      </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setShowManual(true)}
+            className="flex-1 rounded-2xl bg-[#f3f4f6] py-3 font-medium text-pos-ink transition-colors hover:bg-[#e5e7eb]"
+          >
+            + Producto Manual
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCancel(true)}
+            className="rounded-2xl bg-[#fef2f2] px-4 py-3 font-medium text-[#ef4444] transition-colors hover:bg-[#fee2e2] sm:shrink-0"
+          >
+            Anular Última
+          </button>
+        </div>
 
-      <div className="bg-white rounded-2xl shadow-lg p-4 min-h-[200px]">
         <Cart />
+        <PaymentSelector selected={paymentMethod} onSelect={setPaymentMethod} />
+
+        {error && <p className="text-center text-sm text-[#ef4444]">{error}</p>}
+
+        <GradientButton
+          variant="purple"
+          onClick={handleCharge}
+          disabled={loading || items.length === 0}
+        >
+          {loading ? 'Procesando...' : 'COBRAR'}
+        </GradientButton>
+      </PageCard>
       </div>
 
-      <PaymentSelector selected={paymentMethod} onSelect={setPaymentMethod} />
-
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-
-      <button
-        onClick={handleCharge}
-        disabled={loading || items.length === 0}
-        className="w-full py-5 bg-blue-600 text-white rounded-xl font-bold text-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
-      >
-        {loading ? 'Procesando...' : 'COBRAR'}
-      </button>
-
-      <Modal open={showNewProduct} onClose={() => setShowNewProduct(false)} title="Nuevo Producto">
-        <ProductForm
-          barcode={unknownBarcode}
-          onSubmit={handleCreateProduct}
-          onCancel={() => setShowNewProduct(false)}
-          loading={loading}
-        />
-      </Modal>
+      <ProductSearchModal
+        open={showSearch}
+        query={searchQuery}
+        products={searchResults}
+        onSelect={handleSelectProduct}
+        onClose={() => {
+          setShowSearch(false);
+          setSearchResults([]);
+        }}
+      />
 
       <Modal open={showManual} onClose={() => setShowManual(false)} title="Producto Manual">
         <ManualProductForm
@@ -197,6 +218,6 @@ export default function PosPage() {
         confirmLabel="Anular"
         danger
       />
-    </div>
+    </>
   );
 }

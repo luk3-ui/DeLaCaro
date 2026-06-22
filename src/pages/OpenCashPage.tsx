@@ -1,7 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCashStore } from '../stores/cashStore';
+import PageCard from '../components/ui/PageCard';
+import NumericKeypad from '../components/ui/NumericKeypad';
+import GradientButton from '../components/ui/GradientButton';
+import CashStatusBadge from '../components/ui/CashStatusBadge';
+import { subpageContentClass } from '../components/layout/subpageContent';
 import { formatCurrency } from '../utils/format';
+
+function applyDigit(current: string, digit: string): string {
+  if (current === '0') return digit;
+  if (current.length >= 9) return current;
+  return current + digit;
+}
 
 export default function OpenCashPage() {
   const navigate = useNavigate();
@@ -10,27 +21,28 @@ export default function OpenCashPage() {
 
   if (session) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full mb-4">
-          <span className="w-3 h-3 bg-green-500 rounded-full" />
-          Caja abierta
-        </div>
-        <p className="text-gray-600 mb-6">
-          Monto inicial: {formatCurrency(Number(session.opening_amount))}
-        </p>
-        <button
-          onClick={() => navigate('/pos')}
-          className="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700"
-        >
-          Ir a Vender
-        </button>
+      <div className={`${subpageContentClass} max-w-lg sm:gap-12`}>
+        <PageCard className="w-full">
+          <p className="font-[family-name:var(--font-inter)] text-[13px] font-semibold uppercase tracking-wide text-pos-muted">
+            Monto Inicial
+          </p>
+          <div className="mt-3 flex items-center justify-center rounded-2xl border border-[#e0e7ff] bg-[#f5f7ff] px-5 py-4">
+            <span className="font-[family-name:var(--font-inter)] text-3xl font-extrabold tracking-tight text-[#101828] sm:text-4xl">
+              {formatCurrency(Number(session.opening_amount))}
+            </span>
+          </div>
+          <div className="mt-4">
+            <GradientButton onClick={() => navigate('/pos')}>Ir a Venta</GradientButton>
+          </div>
+        </PageCard>
+        <CashStatusBadge />
       </div>
     );
   }
 
   const handleOpen = async () => {
     try {
-      await openSession(parseFloat(amount) || 0);
+      await openSession(parseInt(amount, 10) || 0);
       navigate('/pos');
     } catch {
       // error handled in store
@@ -38,33 +50,38 @@ export default function OpenCashPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Apertura de Caja</h2>
-      <div className="bg-white rounded-2xl shadow-lg p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Monto Inicial
-          </label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            min="0"
-            step="0.01"
-            className="w-full px-4 py-4 text-2xl text-center border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+    <div className={`${subpageContentClass} max-w-lg sm:gap-12`}>
+      <PageCard className="w-full">
+        <p className="font-[family-name:var(--font-inter)] text-[13px] font-semibold uppercase tracking-wide text-pos-muted">
+          Monto Inicial
+        </p>
+        <div className="mt-3 flex items-center justify-center rounded-2xl border border-[#e0e7ff] bg-[#f5f7ff] px-5 py-4">
+          <span className="font-[family-name:var(--font-inter)] text-3xl font-extrabold tracking-tight text-[#101828] sm:text-4xl">
+            {formatCurrency(parseInt(amount, 10) || 0)}
+          </span>
+        </div>
+
+        <div className="mt-5">
+          <NumericKeypad
+            onDigit={(digit) => setAmount((prev) => applyDigit(prev, digit))}
+            onClear={() => setAmount('0')}
+            onBackspace={() =>
+              setAmount((prev) => (prev.length <= 1 ? '0' : prev.slice(0, -1)))
+            }
           />
         </div>
+
         {error && (
-          <p className="text-red-600 text-sm text-center">{error}</p>
+          <p className="mt-4 text-center text-sm text-[#ef4444]">{error}</p>
         )}
-        <button
-          onClick={handleOpen}
-          disabled={loading}
-          className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {loading ? 'Abriendo...' : 'ABRIR CAJA'}
-        </button>
-      </div>
+
+        <div className="mt-5">
+          <GradientButton onClick={handleOpen} disabled={loading}>
+            {loading ? 'Abriendo...' : 'ABRIR CAJA'}
+          </GradientButton>
+        </div>
+      </PageCard>
+      <CashStatusBadge />
     </div>
   );
 }

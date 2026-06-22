@@ -1,54 +1,45 @@
-import type { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useCashStore } from '../stores/cashStore';
+import { useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
+import AppHeader from '../components/layout/AppHeader';
+import BackToHomeButton from '../components/layout/BackToHomeButton';
+import CashSubNav from '../components/layout/CashSubNav';
+import { pageShellClass } from '../components/layout/pageShell';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { path: '/open', label: 'Abrir Caja' },
-  { path: '/pos', label: 'Vender' },
-  { path: '/restock', label: 'Reposición' },
-  { path: '/close', label: 'Cerrar Caja' },
-  { path: '/admin', label: 'Productos' },
-];
-
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation();
-  const session = useCashStore((s) => s.session);
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('month');
+  const showCashSubNav =
+    pathname.startsWith('/open') || pathname.startsWith('/close');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-blue-700 text-white shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight">Comercio IA</h1>
-          <div className="flex items-center gap-2 text-sm">
-            <span
-              className={`inline-block w-2.5 h-2.5 rounded-full ${
-                session ? 'bg-green-400' : 'bg-red-400'
-              }`}
-            />
-            <span>{session ? 'CAJA ABIERTA' : 'CAJA CERRADA'}</span>
-          </div>
+    <div className="flex min-h-screen flex-col bg-pos-bg">
+      <AppHeader period={period} onPeriodChange={setPeriod} />
+      <main className="w-full flex-1 pb-8 pt-2 sm:pb-12">
+        <div className={`${pageShellClass} flex flex-col`}>
+          {!isHome && (
+            <div className="mb-4 sm:mb-6">
+              <BackToHomeButton />
+            </div>
+          )}
+          {isHome ? (
+            <div className="flex-1">{children}</div>
+          ) : (
+            <div className="flex w-full flex-col items-center">
+              {showCashSubNav && (
+                <div className="mb-6 w-full max-w-lg sm:mb-8">
+                  <CashSubNav />
+                </div>
+              )}
+              <div className="flex w-full flex-col items-center">{children}</div>
+            </div>
+          )}
         </div>
-        <nav className="max-w-4xl mx-auto px-4 pb-2 flex gap-1 overflow-x-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                location.pathname === item.path
-                  ? 'bg-white text-blue-700'
-                  : 'text-blue-100 hover:bg-blue-600'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">{children}</main>
+      </main>
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import Layout from './layouts/Layout';
+import HomePage from './pages/HomePage';
 import OpenCashPage from './pages/OpenCashPage';
 import PosPage from './pages/PosPage';
 import RestockPage from './pages/RestockPage';
@@ -17,7 +18,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/pos" replace />} />
+      <Route path="/" element={<HomePage />} />
       <Route path="/open" element={<OpenCashPage />} />
       <Route path="/pos" element={<PosPage />} />
       <Route path="/restock" element={<RestockPage />} />

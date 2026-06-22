@@ -2,9 +2,38 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Loader from '../components/Loader';
+import PageCard from '../components/ui/PageCard';
+import GradientButton from '../components/ui/GradientButton';
+import CashStatusBadge from '../components/ui/CashStatusBadge';
+import { subpageContentClass } from '../components/layout/subpageContent';
 import { useCashStore } from '../stores/cashStore';
 import * as cashService from '../services/cashService';
 import { formatCurrency } from '../utils/format';
+
+function SummaryRow({
+  label,
+  value,
+  bold,
+  border,
+}: {
+  label: string;
+  value: string;
+  bold?: boolean;
+  border?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between py-3 ${border ? 'border-b border-[#f0f0f8]' : ''}`}
+    >
+      <span className="text-pos-muted">{label}</span>
+      <span
+        className={`${bold ? 'text-2xl font-bold text-pos-ink' : 'font-semibold text-pos-ink'}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default function CloseCashPage() {
   const navigate = useNavigate();
@@ -36,70 +65,49 @@ export default function CloseCashPage() {
 
   if (!session && !closed) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600 text-lg mb-4">No hay caja abierta</p>
-        <button
-          onClick={() => navigate('/open')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium"
-        >
+      <div className={`${subpageContentClass} max-w-lg py-12`}>
+        <p className="text-center text-lg text-pos-muted">No hay caja abierta</p>
+        <GradientButton fullWidth={false} className="px-8" onClick={() => navigate('/open')}>
           Abrir Caja
-        </button>
+        </GradientButton>
       </div>
     );
   }
 
   if (closed) {
     return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">✓</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
-        <p className="text-gray-600 mb-6">Resumen guardado correctamente</p>
-        <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm mx-auto text-left space-y-3">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Total vendido</span>
-            <span className="font-bold">{formatCurrency(summary.total)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Operaciones</span>
-            <span className="font-bold">{summary.count}</span>
-          </div>
+      <div className={`${subpageContentClass} max-w-lg py-8`}>
+        <div className="text-center">
+          <div className="mb-4 text-6xl text-[#05df72]">✓</div>
+          <h2 className="text-2xl font-bold text-pos-ink">Caja Cerrada</h2>
+          <p className="mt-2 text-pos-muted">Resumen guardado correctamente</p>
         </div>
+        <PageCard>
+          <SummaryRow label="Total vendido" value={formatCurrency(summary.total)} bold />
+          <SummaryRow label="Operaciones" value={String(summary.count)} />
+        </PageCard>
+        <GradientButton onClick={() => navigate('/')}>Volver al inicio</GradientButton>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Cierre de Caja</h2>
-      <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-        <div className="flex justify-between items-center py-2 border-b">
-          <span className="text-gray-600">Ventas</span>
-          <span className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total)}</span>
+    <div className={`${subpageContentClass} max-w-md sm:gap-12`}>
+      <PageCard className="max-w-md">
+        <SummaryRow label="Ventas" value={formatCurrency(summary.total)} bold border />
+        <SummaryRow label="Efectivo" value={formatCurrency(summary.cash)} />
+        <SummaryRow label="QR" value={formatCurrency(summary.qr)} />
+        <SummaryRow label="Tarjeta" value={formatCurrency(summary.card)} />
+        <div className="mt-2 border-t border-[#f0f0f8] pt-2">
+          <SummaryRow label="Operaciones" value={String(summary.count)} bold />
         </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-600">Efectivo</span>
-          <span className="font-semibold">{formatCurrency(summary.cash)}</span>
+        <div className="mt-6">
+          <GradientButton variant="red" onClick={() => setShowConfirm(true)} disabled={loading}>
+            {loading ? 'Cerrando...' : 'CERRAR CAJA'}
+          </GradientButton>
         </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-600">QR</span>
-          <span className="font-semibold">{formatCurrency(summary.qr)}</span>
-        </div>
-        <div className="flex justify-between py-2">
-          <span className="text-gray-600">Tarjeta</span>
-          <span className="font-semibold">{formatCurrency(summary.card)}</span>
-        </div>
-        <div className="flex justify-between py-2 border-t">
-          <span className="text-gray-600">Operaciones</span>
-          <span className="font-bold text-lg">{summary.count}</span>
-        </div>
-        <button
-          onClick={() => setShowConfirm(true)}
-          disabled={loading}
-          className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 mt-4"
-        >
-          {loading ? 'Cerrando...' : 'CERRAR CAJA'}
-        </button>
-      </div>
+      </PageCard>
+      <CashStatusBadge />
 
       <ConfirmDialog
         open={showConfirm}

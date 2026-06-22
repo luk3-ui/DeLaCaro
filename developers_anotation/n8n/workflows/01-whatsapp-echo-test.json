@@ -1,0 +1,75 @@
+{
+  "name": "01 - WhatsApp Echo Test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "id": "a1b2c3d4-echo-webhook-0001",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "whatsapp-incoming-echo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst event = String(body.event || '').toLowerCase().replace(/_/g, '.');\nif (event === 'messages.set' || event === 'chats.set' || event === 'chats.upsert') {\n  return [];\n}\nif (event && event !== 'messages.upsert') {\n  return [];\n}\n\nconst data = body.data || body;\nconst upsertType = String(data?.type || 'notify').toLowerCase();\nif (upsertType === 'append') {\n  return [];\n}\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.seen) staticData.seen = {};\nconst now = Date.now();\nfor (const [id, ts] of Object.entries(staticData.seen)) {\n  if (now - ts > 5 * 60 * 1000) delete staticData.seen[id];\n}\n\nfunction extractText(msg) {\n  if (!msg || typeof msg !== 'object') return '';\n  if (msg.conversation) return String(msg.conversation);\n  if (msg.extendedTextMessage?.text) return String(msg.extendedTextMessage.text);\n  if (msg.imageMessage?.caption) return String(msg.imageMessage.caption);\n  if (msg.videoMessage?.caption) return String(msg.videoMessage.caption);\n  if (msg.buttonsResponseMessage?.selectedDisplayText) {\n    return String(msg.buttonsResponseMessage.selectedDisplayText);\n  }\n  if (msg.listResponseMessage?.title) return String(msg.listResponseMessage.title);\n  if (msg.ephemeralMessage?.message) return extractText(msg.ephemeralMessage.message);\n  if (msg.viewOnceMessage?.message) return extractText(msg.viewOnceMessage.message);\n  if (msg.documentWithCaptionMessage?.message) {\n    return extractText(msg.documentWithCaptionMessage.message);\n  }\n  return '';\n}\n\nfunction processEntry(entry) {\n  if (!entry?.key) return null;\n  if (entry.key.fromMe === true) return null;\n\n  const msgId = String(entry.key.id || '');\n  if (msgId && staticData.seen[msgId]) return null;\n  if (msgId) staticData.seen[msgId] = now;\n\n  const jid = String(entry.key.remoteJid || '');\n  if (!jid || jid.endsWith('@g.us') || jid === 'status@broadcast') return null;\n\n  const phone = String(\n    entry.key.remoteJidAlt ||\n    entry.key.senderPn ||\n    entry.key.participant ||\n    jid\n  )\n    .replace('@s.whatsapp.net', '')\n    .replace('@c.us', '')\n    .split('@')[0]\n    .replace(/\\D/g, '');\n\n  const text = extractText(entry.message).trim();\n  if (phone && text) return { phone, text, messageId: msgId };\n  return null;\n}\n\nlet entries = [];\nif (Array.isArray(data)) {\n  entries = data;\n} else if (Array.isArray(data?.messages)) {\n  entries = data.messages;\n} else if (data?.key) {\n  entries = [data];\n}\n\nconst out = [];\nfor (const entry of entries) {\n  const row = processEntry(entry);\n  if (row) out.push({ json: row });\n}\n\nreturn out;"
+      },
+      "id": "a1b2c3d4-echo-code-0002",
+      "name": "Extraer mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst apiKey = $env.EVOLUTION_API_KEY;\nif (!apiKey) {\n  throw new Error('EVOLUTION_API_KEY no está en el contenedor n8n. Corré: docker compose up -d n8n --force-recreate');\n}\n\nconst instance = $env.EVOLUTION_INSTANCE || 'comercio-ia';\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `http://evolution-api:8080/message/sendText/${instance}`,\n  headers: {\n    apikey: apiKey,\n    'Content-Type': 'application/json',\n  },\n  body: {\n    number: item.phone,\n    text: `Recibido: ${item.text}`,\n  },\n  json: true,\n});\n\nreturn [{ json: { ...item, sent: true, evolution: response } }];"
+      },
+      "id": "a1b2c3d4-echo-code-0003",
+      "name": "Responder WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer mensaje": {
+      "main": [
+        [
+          {
+            "node": "Responder WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -8,23 +8,23 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400">
-        <p className="text-lg">Carrito vacío</p>
-        <p className="text-sm mt-1">Escaneá un producto para comenzar</p>
+      <div className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border border-[#e5e7eb] bg-[#fafafa] py-10 text-center sm:min-h-[200px]">
+        <p className="text-lg font-medium text-pos-muted">Carrito vacío</p>
+        <p className="mt-1 text-sm text-[#c4c9d4]">Escaneá un producto para comenzar</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-[#f0f0f8]">
         {items.map((item) => (
           <CartItem key={item.id} item={item} />
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t-2 border-gray-200 flex justify-between items-center">
-        <span className="text-lg font-semibold text-gray-700">TOTAL</span>
-        <span className="text-2xl font-bold text-blue-700">{formatCurrency(total)}</span>
+      <div className="mt-4 flex items-center justify-between border-t-2 border-[#e5e7eb] pt-4">
+        <span className="text-lg font-semibold text-pos-ink">TOTAL</span>
+        <span className="text-2xl font-bold text-[#5b6bf5]">{formatCurrency(total)}</span>
       </div>
     </div>
   );

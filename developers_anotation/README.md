@@ -16,12 +16,17 @@ Documentación interna del equipo. **No es código de producción.**
 | [08-deploy-completo.md](./08-deploy-completo.md) | Franco | Referencia técnica de deploy |
 | [09-como-se-ve-el-pos.md](./09-como-se-ve-el-pos.md) | Ambos | Qué es la app web y cómo se ve |
 | [10-paso-a-paso-github-colaboracion.md](./10-paso-a-paso-github-colaboracion.md) | Ambos | GitHub + trabajo en paralelo |
-| [n8n/](./n8n/) | Franco | Workflows y prompts para importar |
+| [11-whatsapp-test-tu-numero.md](./11-whatsapp-test-tu-numero.md) | Franco | WhatsApp test con tu número |
+| [12-deploy-vps-kvm.md](./12-deploy-vps-kvm.md) | Franco | Migración a VPS KVM |
+| [13-instalacion-local-n8n.md](./13-instalacion-local-n8n.md) | Franco | **Instalar N8N local ahora** |
+| [14-configurar-n8n-desde-cero.md](./14-configurar-n8n-desde-cero.md) | Franco | **Importar workflows N8N (vacío → bot)** |
+| [15-n8n-openai-bot.md](./15-n8n-openai-bot.md) | Franco | **Bot con OpenAI + fix doble respuesta** |
+| [n8n/](./n8n/) | Franco | Workflows JSON y prompts para importar |
 
 ## Orden recomendado
 
 1. Franco → `03-paso-a-paso-supabase.md`
 2. Socio → `04-paso-a-paso-pos-local.md`
 3. Socio → `05-paso-a-paso-deploy-vercel.md`
-4. Franco → `06-paso-a-paso-whatsapp-n8n.md`
+4. Franco → `13-instalacion-local-n8n.md` → **`14-configurar-n8n-desde-cero.md`**
 5. Ambos → `07-checklist-validacion.md`

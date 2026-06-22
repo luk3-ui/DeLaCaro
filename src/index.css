@@ -1,7 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&family=Nunito:wght@500;600;700;800&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --color-pos-bg: #f0f0f8;
+  --color-pos-ink: #1a1848;
+  --color-pos-muted: #99a1af;
+  --color-pos-nav: rgba(45, 43, 107, 0.08);
+  --color-pos-open: #05df72;
+  --color-pos-close: #ef4444;
+  --font-nunito: "Nunito", system-ui, sans-serif;
+  --font-inter: "Inter", system-ui, sans-serif;
+}
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-nunito);
   -webkit-font-smoothing: antialiased;
+  background-color: var(--color-pos-bg);
+  color: var(--color-pos-ink);
 }

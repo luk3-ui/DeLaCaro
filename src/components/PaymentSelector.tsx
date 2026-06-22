@@ -5,23 +5,39 @@ interface PaymentSelectorProps {
   onSelect: (method: PaymentMethod) => void;
 }
 
-const methods: { key: PaymentMethod; label: string; color: string }[] = [
-  { key: 'cash', label: 'EFECTIVO', color: 'bg-green-600 hover:bg-green-700' },
-  { key: 'qr', label: 'QR', color: 'bg-purple-600 hover:bg-purple-700' },
-  { key: 'card', label: 'TARJETA', color: 'bg-orange-600 hover:bg-orange-700' },
+const methods: { key: PaymentMethod; label: string; color: string; ring: string }[] = [
+  {
+    key: 'cash',
+    label: 'EFECTIVO',
+    color: 'bg-[#16a34a] hover:bg-[#15803d]',
+    ring: 'ring-[#86efac]',
+  },
+  {
+    key: 'qr',
+    label: 'QR',
+    color: 'bg-[#9333ea] hover:bg-[#7e22ce]',
+    ring: 'ring-[#d8b4fe]',
+  },
+  {
+    key: 'card',
+    label: 'TARJETA',
+    color: 'bg-[#ea580c] hover:bg-[#c2410c]',
+    ring: 'ring-[#fdba74]',
+  },
 ];
 
 export default function PaymentSelector({ selected, onSelect }: PaymentSelectorProps) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {methods.map((m) => (
         <button
           key={m.key}
+          type="button"
           onClick={() => onSelect(m.key)}
-          className={`py-4 rounded-xl text-white font-bold text-sm transition-all ${
+          className={`rounded-2xl py-4 text-sm font-bold text-white transition-all ${m.color} ${
             selected === m.key
-              ? `${m.color} ring-4 ring-offset-2 ring-blue-300 scale-105`
-              : `${m.color} opacity-80`
+              ? `scale-[1.02] ring-4 ring-offset-2 ${m.ring}`
+              : 'opacity-85'
           }`}
         >
           {m.label}

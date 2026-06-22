@@ -7,7 +7,19 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "stack:start": "bash scripts/start-stack.sh",
+    "stack:stop": "docker-compose down 2>/dev/null || docker compose down 2>/dev/null || true",
+    "stack:logs": "docker-compose logs -f 2>/dev/null || docker compose logs -f",
+    "stack:diagnose": "bash scripts/diagnose-stack.sh",
+    "whatsapp:qr": "bash scripts/whatsapp-qr.sh",
+    "whatsapp:reconnect": "bash scripts/whatsapp-reconnect.sh",
+    "whatsapp:reconnect:yes": "bash scripts/whatsapp-reconnect.sh -y",
+    "whatsapp:reset": "bash scripts/whatsapp-reset.sh",
+    "whatsapp:reset:yes": "bash scripts/whatsapp-reset.sh -y",
+    "whatsapp:diagnose": "bash scripts/whatsapp-diagnose.sh",
+    "webhook:fix": "bash scripts/fix-evolution-webhook.sh",
+    "n8n:env-check": "bash scripts/check-n8n-env.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

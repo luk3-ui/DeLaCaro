@@ -3,6 +3,8 @@ import Loader from '../components/Loader';
 import Modal from '../components/Modal';
 import ProductForm from '../components/ProductForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PageCard from '../components/ui/PageCard';
+import { subpageContentClass } from '../components/layout/subpageContent';
 import * as productService from '../services/productService';
 import type { Product, CreateProductInput } from '../types';
 import { formatCurrency } from '../utils/format';
@@ -71,27 +73,30 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Productos</h2>
+    <>
+    <div className={`${subpageContentClass} w-full max-w-4xl`}>
+    <PageCard className="w-full space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold text-pos-ink">Productos</h2>
         <button
+          type="button"
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700"
+          className="rounded-2xl bg-gradient-to-br from-[#5b6bf5] to-[#818cf8] px-4 py-2.5 font-medium text-white shadow-sm hover:opacity-95 sm:shrink-0"
         >
           + Nuevo
         </button>
       </div>
 
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre o código..."
-          className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-300 focus:outline-none"
+          className="flex-1 rounded-2xl border border-[#e5e7eb] px-4 py-2.5 focus:border-[#818cf8] focus:outline-none focus:ring-2 focus:ring-[#e0e7ff]"
         />
         <button
           type="submit"
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
+          className="rounded-2xl bg-[#f3f4f6] px-4 py-2.5 font-medium text-pos-ink hover:bg-[#e5e7eb] sm:shrink-0"
         >
           Buscar
         </button>
@@ -100,47 +105,58 @@ export default function AdminPage() {
       {loading ? (
         <Loader />
       ) : products.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">No hay productos</p>
+        <p className="py-8 text-center text-pos-muted">No hay productos</p>
       ) : (
-        <div className="bg-white rounded-2xl shadow-lg divide-y">
+        <div className="divide-y divide-[#f0f0f8] overflow-hidden rounded-2xl border border-[#f0f0f8]">
           {products.map((p) => (
             <div
               key={p.id}
-              className={`flex items-center gap-3 px-4 py-3 ${!p.active ? 'opacity-50' : ''}`}
+              className={`flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-3 ${!p.active ? 'opacity-50' : ''}`}
             >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{p.name}</p>
-                <p className="text-xs text-gray-500 font-mono">{p.barcode}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-pos-ink">{p.name}</p>
+                <p className="font-mono text-xs text-pos-muted">{p.barcode}</p>
               </div>
-              <div className="text-right">
-                <p className="font-semibold">{formatCurrency(Number(p.price))}</p>
-                <p className={`text-xs ${p.stock_current <= p.stock_minimum ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                  Stock: {p.stock_current}
-                </p>
-              </div>
-              {p.active && (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setEditProduct(p)}
-                    className="px-2 py-1 text-blue-600 text-sm hover:bg-blue-50 rounded"
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <div className="text-left sm:text-right">
+                  <p className="font-semibold text-pos-ink">{formatCurrency(Number(p.price))}</p>
+                  <p
+                    className={`text-xs ${
+                      p.stock_current <= p.stock_minimum
+                        ? 'font-bold text-[#ef4444]'
+                        : 'text-pos-muted'
+                    }`}
                   >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => setDeactivateId(p.id)}
-                    className="px-2 py-1 text-red-600 text-sm hover:bg-red-50 rounded"
-                  >
-                    Desactivar
-                  </button>
+                    Stock: {p.stock_current}
+                  </p>
                 </div>
-              )}
-              {!p.active && (
-                <span className="text-xs text-gray-400">Inactivo</span>
-              )}
+                {p.active ? (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditProduct(p)}
+                      className="rounded-lg px-2 py-1 text-sm text-[#5b6bf5] hover:bg-[#f5f7ff]"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeactivateId(p.id)}
+                      className="rounded-lg px-2 py-1 text-sm text-[#ef4444] hover:bg-[#fef2f2]"
+                    >
+                      Desactivar
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-pos-muted">Inactivo</span>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
+    </PageCard>
+    </div>
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo Producto">
         <ProductForm
@@ -176,6 +192,6 @@ export default function AdminPage() {
         confirmLabel="Desactivar"
         danger
       />
-    </div>
+    </>
   );
 }

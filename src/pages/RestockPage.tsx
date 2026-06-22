@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import BarcodeScanner from '../components/BarcodeScanner';
 import Loader from '../components/Loader';
+import PageCard from '../components/ui/PageCard';
+import GradientButton from '../components/ui/GradientButton';
+import { subpageContentClass } from '../components/layout/subpageContent';
 import * as productService from '../services/productService';
 import * as purchaseService from '../services/purchaseService';
 import type { Product } from '../types';
@@ -53,63 +56,67 @@ export default function RestockPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 text-center">Reposición de Stock</h2>
+    <div className={`${subpageContentClass} max-w-3xl`}>
+      <p className="w-full max-w-2xl text-center text-sm font-bold text-pos-muted sm:text-base">
+        Reposición de Stock
+      </p>
 
-      <BarcodeScanner onScan={handleScan} disabled={loading} />
+      <PageCard className="max-w-2xl space-y-4">
+        <BarcodeScanner onScan={handleScan} disabled={loading} />
 
-      {loading && <Loader text="Registrando..." />}
+        {loading && <Loader text="Registrando..." />}
 
-      {product && (
-        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-          <div>
-            <p className="text-sm text-gray-500">Producto</p>
-            <p className="text-xl font-bold text-gray-900">{product.name}</p>
-          </div>
-          <div className="flex gap-4">
+        {product && (
+          <div className="space-y-4 border-t border-[#f0f0f8] pt-4">
             <div>
-              <p className="text-sm text-gray-500">Stock actual</p>
-              <p className="text-2xl font-bold text-blue-700">{product.stock_current}</p>
+              <p className="text-sm text-pos-muted">Producto</p>
+              <p className="text-xl font-bold text-pos-ink">{product.name}</p>
+            </div>
+            <div className="flex gap-6">
+              <div>
+                <p className="text-sm text-pos-muted">Stock actual</p>
+                <p className="text-2xl font-bold text-[#5b6bf5]">{product.stock_current}</p>
+              </div>
+              <div>
+                <p className="text-sm text-pos-muted">Stock mínimo</p>
+                <p className="text-2xl font-bold text-pos-muted">{product.stock_minimum}</p>
+              </div>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Stock mínimo</p>
-              <p className="text-2xl font-bold text-gray-600">{product.stock_minimum}</p>
+              <label className="mb-1 block text-sm font-medium text-pos-ink">
+                Cantidad a agregar
+              </label>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                min="1"
+                className="w-full rounded-2xl border-2 border-[#e5e7eb] bg-white px-4 py-3 text-center text-xl focus:border-[#818cf8] focus:outline-none"
+                placeholder="0"
+              />
             </div>
+            <GradientButton
+              variant="green"
+              onClick={handleRestock}
+              disabled={loading || !quantity}
+            >
+              AGREGAR STOCK
+            </GradientButton>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantidad a agregar
-            </label>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              min="1"
-              className="w-full px-4 py-3 text-xl text-center border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
-              placeholder="0"
-            />
+        )}
+
+        {success && (
+          <div className="rounded-2xl bg-[#dbfce7] py-3 text-center font-medium text-[#016630]">
+            Stock actualizado correctamente
           </div>
-          <button
-            onClick={handleRestock}
-            disabled={loading || !quantity}
-            className="w-full py-4 bg-green-600 text-white rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50"
-          >
-            AGREGAR STOCK
-          </button>
-        </div>
-      )}
+        )}
 
-      {success && (
-        <div className="bg-green-100 text-green-800 text-center py-3 rounded-xl font-medium">
-          Stock actualizado correctamente
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-100 text-red-800 text-center py-3 rounded-xl font-medium">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="rounded-2xl bg-[#fef2f2] py-3 text-center font-medium text-[#ef4444]">
+            {error}
+          </div>
+        )}
+      </PageCard>
     </div>
   );
 }

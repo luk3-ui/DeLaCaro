@@ -32,10 +32,10 @@ export default function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps
         disabled={disabled}
         onKeyDown={handleKeyDown}
         placeholder="Escanear o buscar producto..."
-        className="w-full px-4 py-4 text-lg border-2 border-blue-300 rounded-xl focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full rounded-2xl border-2 border-[#c7d2fe] bg-white px-4 py-3.5 text-base text-pos-ink placeholder:text-pos-muted focus:border-[#818cf8] focus:outline-none focus:ring-2 focus:ring-[#e0e7ff] disabled:cursor-not-allowed disabled:bg-[#f5f7ff] sm:py-4 sm:text-lg"
         autoComplete="off"
       />
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-pos-muted">
         Enter ↵
       </div>
     </div>

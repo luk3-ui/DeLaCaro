@@ -1,25 +1,116 @@
-version: '3.8'
+# ============================================================
+# Comercio IA — Stack local (N8N + Evolution API)
+# Evolution usa Postgres LOCAL (no Supabase) — solo guarda sesión WhatsApp
+# ============================================================
 
 services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: comercio-ia-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      # Base URL de N8N (sin path del workflow). NO usar N8N_WEBHOOK_URL acá.
+      - WEBHOOK_URL=${N8N_BASE_URL:-http://n8n:5678/}
+      - GENERIC_TIMEZONE=America/Argentina/Buenos_Aires
+      - TZ=America/Argentina/Buenos_Aires
+      - N8N_SECURE_COOKIE=false
+      # N8N 2.26+: Code nodes usan $env (no process.env) en task runners
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_EXPRESSIONS_ALLOWED_ENV_VARS=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,EVOLUTION_API_KEY,EVOLUTION_INSTANCE,EVOLUTION_API_URL,OPENAI_API_KEY
+      - N8N_RUNNERS_MODE=internal
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-comercio-ia-2026}
+      # Variables para workflows (accesibles como $env.NOMBRE en nodos)
+      - SUPABASE_URL=${VITE_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE:-comercio-ia}
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - comercio-ia-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres-evolution:
+    image: postgres:16-alpine
+    container_name: comercio-ia-evolution-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution_local_pass
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution_pg:/var/lib/postgresql/data
+    networks:
+      - comercio-ia-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: comercio-ia-whatsapp
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${EVOLUTION_PORT:-8081}:8080"
     environment:
-      - SERVER_URL=http://localhost:8080
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8081}
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=${DATABASE_URL}
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution_local_pass@postgres-evolution:5432/evolution
       - DATABASE_CONNECTION_CLIENT_NAME=evolution
-      - WEBHOOK_GLOBAL_ENABLED=true
-      - WEBHOOK_GLOBAL_URL=${N8N_WEBHOOK_URL}
-      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
+      # Menos carga al vincular — evita timeouts Baileys (comunidad Evolution)
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_LOCAL_ENABLED=true
+      - DATABASE_SAVE_DATA_CHATS=false
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_HISTORIC=false
+      - DATABASE_SAVE_DATA_LABELS=false
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_GLOBAL_URL=${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/whatsapp-incoming}
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      # Solo mensajes entrantes — el resto en false evita ruido en N8N
       - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=false
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=false
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=false
+      - WEBHOOK_EVENTS_MESSAGES_SET=false
+      - WEBHOOK_EVENTS_SEND_MESSAGE=false
+      - WEBHOOK_EVENTS_PRESENCE_UPDATE=false
+      # Versión WhatsApp Web — si queda en "connecting", actualizar (ver npm run whatsapp:reconnect)
+      - CONFIG_SESSION_PHONE_VERSION=${CONFIG_SESSION_PHONE_VERSION:-2.3000.1040081378}
+      - CONFIG_SESSION_PHONE_CLIENT=Chrome
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+      - QRCODE_LIMIT=30
+      - QRCODE_COLOR=#198754
     volumes:
       - evolution_instances:/evolution/instances
+    networks:
+      - comercio-ia-net
+    depends_on:
+      postgres-evolution:
+        condition: service_healthy
+
+networks:
+  comercio-ia-net:
+    driver: bridge
 
 volumes:
+  n8n_data:
   evolution_instances:
+  evolution_pg:

@@ -1,0 +1,171 @@
+{
+  "name": "03 - Comercio IA OpenAI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "id": "c1-webhook",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "whatsapp-incoming-ai"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst event = String(body.event || '').toLowerCase().replace(/_/g, '.');\nif (event === 'messages.set' || event === 'chats.set' || event === 'chats.upsert') {\n  return [];\n}\nif (event && event !== 'messages.upsert') {\n  return [];\n}\n\nconst data = body.data || body;\nconst upsertType = String(data?.type || 'notify').toLowerCase();\nif (upsertType === 'append') {\n  return [];\n}\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.seen) staticData.seen = {};\nconst now = Date.now();\nfor (const [id, ts] of Object.entries(staticData.seen)) {\n  if (now - ts > 5 * 60 * 1000) delete staticData.seen[id];\n}\n\nfunction extractText(msg) {\n  if (!msg || typeof msg !== 'object') return '';\n  if (msg.conversation) return String(msg.conversation);\n  if (msg.extendedTextMessage?.text) return String(msg.extendedTextMessage.text);\n  if (msg.imageMessage?.caption) return String(msg.imageMessage.caption);\n  if (msg.videoMessage?.caption) return String(msg.videoMessage.caption);\n  if (msg.buttonsResponseMessage?.selectedDisplayText) {\n    return String(msg.buttonsResponseMessage.selectedDisplayText);\n  }\n  if (msg.listResponseMessage?.title) return String(msg.listResponseMessage.title);\n  if (msg.ephemeralMessage?.message) return extractText(msg.ephemeralMessage.message);\n  if (msg.viewOnceMessage?.message) return extractText(msg.viewOnceMessage.message);\n  if (msg.documentWithCaptionMessage?.message) {\n    return extractText(msg.documentWithCaptionMessage.message);\n  }\n  return '';\n}\n\nfunction processEntry(entry) {\n  if (!entry?.key) return null;\n  if (entry.key.fromMe === true) return null;\n\n  const msgId = String(entry.key.id || '');\n  if (msgId && staticData.seen[msgId]) return null;\n  if (msgId) staticData.seen[msgId] = now;\n\n  const jid = String(entry.key.remoteJid || '');\n  if (!jid || jid.endsWith('@g.us') || jid === 'status@broadcast') return null;\n\n  const phone = String(\n    entry.key.remoteJidAlt ||\n    entry.key.senderPn ||\n    entry.key.participant ||\n    jid\n  )\n    .replace('@s.whatsapp.net', '')\n    .replace('@c.us', '')\n    .split('@')[0]\n    .replace(/\\D/g, '');\n\n  const text = extractText(entry.message).trim();\n  if (phone && text) return { phone, text, messageId: msgId };\n  return null;\n}\n\nlet entries = [];\nif (Array.isArray(data)) {\n  entries = data;\n} else if (Array.isArray(data?.messages)) {\n  entries = data.messages;\n} else if (data?.key) {\n  entries = [data];\n}\n\nconst out = [];\nfor (const entry of entries) {\n  const row = processEntry(entry);\n  if (row) out.push({ json: row });\n}\n\nreturn out;"
+      },
+      "id": "c1-extract",
+      "name": "Extraer mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst url = $env.SUPABASE_URL;\nconst key = $env.SUPABASE_SERVICE_ROLE_KEY;\nif (!url || !key) throw new Error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY');\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${url}/rest/v1/rpc/fn_is_authorized`,\n  headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },\n  body: { p_phone: item.phone },\n  json: true,\n});\n// Sin respuesta a números no autorizados — silencio total\nif (result !== true) return [];\nreturn [{ json: item }];"
+      },
+      "id": "c1-auth",
+      "name": "Verificar autorizado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst url = $env.SUPABASE_URL;\nconst key = $env.SUPABASE_SERVICE_ROLE_KEY;\nconst headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };\nasync function rpc(name, body = {}) {\n  return await this.helpers.httpRequest({\n    method: 'POST', url: `${url}/rest/v1/rpc/${name}`, headers, body, json: true,\n  });\n}\nconst [summaryRaw, salesRaw, stockRaw, lowStock] = await Promise.all([\n  rpc.call(this, 'fn_business_summary'),\n  rpc.call(this, 'fn_get_sales', { p_period: 'today' }),\n  rpc.call(this, 'fn_get_stock'),\n  this.helpers.httpRequest({\n    method: 'GET',\n    url: `${url}/rest/v1/vw_low_stock?select=name,stock_current,stock_minimum,status&limit=12`,\n    headers: { apikey: key, Authorization: `Bearer ${key}` },\n    json: true,\n  }),\n]);\nconst summary = Array.isArray(summaryRaw) ? (summaryRaw[0] || {}) : (summaryRaw || {});\nconst sales = Array.isArray(salesRaw) ? (salesRaw[0] || {}) : (salesRaw || {});\nconst stock = Array.isArray(stockRaw) ? stockRaw : [stockRaw];\nreturn [{ json: {\n  phone: item.phone, text: item.text, messageId: item.messageId,\n  context: {\n    resumen: summary,\n    ventas_hoy: sales,\n    inventario: stock.slice(0, 30),\n    stock_critico: Array.isArray(lowStock) ? lowStock : [],\n  },\n}}];"
+      },
+      "id": "c1-ctx",
+      "name": "Cargar contexto DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst apiKey = $env.OPENAI_API_KEY;\nif (!apiKey) throw new Error('Falta OPENAI_API_KEY en .env');\nconst system = \"Sos el asistente virtual de un peque\\u00f1o comercio (kiosco).\\n\\nTen\\u00e9s acceso a:\\n- Stock de productos\\n- Ventas diarias, semanales y mensuales\\n- Compras registradas\\n- Gastos operativos\\n\\nPod\\u00e9s:\\n- Consultar informaci\\u00f3n del negocio\\n- Registrar compras de mercader\\u00eda (con confirmaci\\u00f3n)\\n- Registrar gastos operativos (con confirmaci\\u00f3n)\\n- Generar recomendaciones de reposici\\u00f3n\\n\\nNo pod\\u00e9s:\\n- Modificar ni registrar ventas (eso solo se hace desde la caja)\\n- Inventar datos\\n- Eliminar informaci\\u00f3n\\n\\nReglas:\\n- Respond\\u00e9 siempre en espa\\u00f1ol, de forma breve y profesional\\n- Cuando una instrucci\\u00f3n sea ambigua, ped\\u00ed aclaraci\\u00f3n\\n- Cuando una acci\\u00f3n modifique datos, ped\\u00ed confirmaci\\u00f3n expl\\u00edcita (SI/NO)\\n- Si no encontr\\u00e1s informaci\\u00f3n, respond\\u00e9: \\\"No encontr\\u00e9 informaci\\u00f3n suficiente para responder esa consulta.\\\"\\n- Us\\u00e1 formato de moneda argentina ($X.XXX)\\n- Manten\\u00e9 contexto de los \\u00faltimos 20 mensajes\\n\\nHerramientas disponibles:\\n1. getStock(productName?) - consultar stock\\n2. getSales(period) - ventas (today/yesterday/week/month)\\n3. getPurchases(period) - compras recientes\\n4. getExpenses(period) - gastos recientes\\n5. createPurchase(product, quantity) - registrar compra (requiere confirmaci\\u00f3n)\\n6. createExpense(description, amount) - registrar gasto (requiere confirmaci\\u00f3n)\\n7. generateRecommendations() - qu\\u00e9 comprar ma\\u00f1ana\";\nconst userContent = `Mensaje del dueño:\\n\"${item.text}\"\\n\\nDatos del negocio (solo usar esto):\\n${JSON.stringify(item.context, null, 2)}\\n\\nSi piden recomendaciones, usá stock_critico. Máximo 8 líneas, español argentino.`;\nconst resp = await this.helpers.httpRequest({\n  method: 'POST', url: 'https://api.openai.com/v1/chat/completions',\n  headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },\n  body: { model: 'gpt-4o-mini', temperature: 0.35, max_tokens: 600,\n    messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],\n  }, json: true,\n});\nconst reply = resp?.choices?.[0]?.message?.content?.trim() || 'No pude generar una respuesta.';\nreturn [{ json: { phone: item.phone, text: item.text, reply } }];"
+      },
+      "id": "c1-gpt",
+      "name": "OpenAI responder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { phone, text, reply } = $input.first().json;\nconst url = $env.SUPABASE_URL;\nconst key = $env.SUPABASE_SERVICE_ROLE_KEY;\nconst headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };\nasync function save(role, content) {\n  await this.helpers.httpRequest({\n    method: 'POST', url: `${url}/rest/v1/rpc/fn_save_conversation`, headers,\n    body: { p_phone: phone, p_role: role, p_content: content }, json: true,\n  });\n}\nawait save.call(this, 'user', text);\nawait save.call(this, 'assistant', reply);\nreturn [{ json: { phone, reply } }];"
+      },
+      "id": "c1-save",
+      "name": "Guardar conversación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { phone, reply } = $input.first().json;\nconst apiKey = $env.EVOLUTION_API_KEY;\nconst instance = $env.EVOLUTION_INSTANCE || 'comercio-ia';\nawait this.helpers.httpRequest({\n  method: 'POST', url: `http://evolution-api:8080/message/sendText/${instance}`,\n  headers: { apikey: apiKey, 'Content-Type': 'application/json' },\n  body: { number: phone, text: reply }, json: true,\n});\nreturn [{ json: { phone, text: reply, sent: true } }];"
+      },
+      "id": "c1-send",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Extraer mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer mensaje": {
+      "main": [
+        [
+          {
+            "node": "Verificar autorizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar autorizado": {
+      "main": [
+        [
+          {
+            "node": "Cargar contexto DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar contexto DB": {
+      "main": [
+        [
+          {
+            "node": "OpenAI responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI responder": {
+      "main": [
+        [
+          {
+            "node": "Guardar conversación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar conversación": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
