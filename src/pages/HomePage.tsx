@@ -112,7 +112,7 @@ export default function HomePage() {
   const productosCard = buildProductosCardCopy(products);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-[18px] lg:gap-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-[18px] lg:gap-5">
       <DashboardCard
         variant="caja"
         title="CAJA"

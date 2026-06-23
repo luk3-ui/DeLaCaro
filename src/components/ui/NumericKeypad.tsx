@@ -8,13 +8,13 @@ const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
 
 export default function NumericKeypad({ onDigit, onClear, onBackspace }: NumericKeypadProps) {
   return (
-    <div className="grid grid-cols-3 gap-2.5">
+    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
       {keys.map((key) => (
         <button
           key={key}
           type="button"
           onClick={() => onDigit(key)}
-          className="flex h-12 items-center justify-center rounded-2xl bg-[#f5f7ff] font-[family-name:var(--font-inter)] text-lg font-bold text-[#1e2939] transition-colors hover:bg-[#e8edff]"
+          className="flex h-12 items-center justify-center rounded-2xl bg-[#f5f7ff] font-[family-name:var(--font-inter)] text-lg font-bold text-[#1e2939] transition-colors active:bg-[#e8edff] sm:h-12 sm:hover:bg-[#e8edff]"
         >
           {key}
         </button>

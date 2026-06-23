@@ -8,7 +8,7 @@ export default function CashSubNav() {
   if (!isApertura && !isCierre) return null;
 
   const tabClass = (active: boolean) =>
-    `border-b-2 px-1 pb-3 pt-1 text-sm font-semibold transition-colors ${
+    `flex-1 border-b-2 px-2 pb-3 pt-1 text-center text-sm font-semibold transition-colors sm:flex-none sm:px-1 ${
       active
         ? 'border-pos-ink text-pos-ink'
         : 'border-transparent text-pos-muted hover:text-pos-ink'
@@ -16,10 +16,7 @@ export default function CashSubNav() {
 
   return (
     <div className="flex w-full justify-center border-b border-[#e2e4ea]">
-      <nav
-        className="inline-flex items-center gap-8 sm:gap-12"
-        aria-label="Caja"
-      >
+      <nav className="flex w-full max-w-xs items-center gap-4 sm:inline-flex sm:w-auto sm:max-w-none sm:gap-12" aria-label="Caja">
         <Link to="/open" className={tabClass(isApertura)}>
           Apertura
         </Link>

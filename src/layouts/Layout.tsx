@@ -19,10 +19,10 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-pos-bg">
       <AppHeader period={period} onPeriodChange={setPeriod} />
-      <main className="w-full flex-1 pb-8 pt-2 sm:pb-12">
+      <main className="w-full flex-1 pb-[max(2rem,env(safe-area-inset-bottom))] pt-1 sm:pb-12 sm:pt-2">
         <div className={`${pageShellClass} flex flex-col`}>
           {!isHome && (
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-3 sm:mb-6">
               <BackToHomeButton />
             </div>
           )}
@@ -31,7 +31,7 @@ export default function Layout({ children }: LayoutProps) {
           ) : (
             <div className="flex w-full flex-col items-center">
               {showCashSubNav && (
-                <div className="mb-6 w-full max-w-lg sm:mb-8">
+                <div className="mb-4 w-full max-w-lg sm:mb-8">
                   <CashSubNav />
                 </div>
               )}

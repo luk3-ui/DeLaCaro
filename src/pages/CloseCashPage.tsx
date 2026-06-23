@@ -23,11 +23,11 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-center justify-between py-3 ${border ? 'border-b border-[#f0f0f8]' : ''}`}
+      className={`flex items-center justify-between gap-3 py-3 ${border ? 'border-b border-[#f0f0f8]' : ''}`}
     >
-      <span className="text-pos-muted">{label}</span>
+      <span className="shrink-0 text-sm text-pos-muted sm:text-base">{label}</span>
       <span
-        className={`${bold ? 'text-2xl font-bold text-pos-ink' : 'font-semibold text-pos-ink'}`}
+        className={`text-right ${bold ? 'text-xl font-bold text-pos-ink sm:text-2xl' : 'font-semibold text-pos-ink'}`}
       >
         {value}
       </span>

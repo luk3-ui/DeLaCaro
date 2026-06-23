@@ -31,11 +31,11 @@ export default function BarcodeScanner({ onScan, disabled }: BarcodeScannerProps
         type="text"
         disabled={disabled}
         onKeyDown={handleKeyDown}
-        placeholder="Escanear o buscar producto..."
-        className="w-full rounded-2xl border-2 border-[#c7d2fe] bg-white px-4 py-3.5 text-base text-pos-ink placeholder:text-pos-muted focus:border-[#818cf8] focus:outline-none focus:ring-2 focus:ring-[#e0e7ff] disabled:cursor-not-allowed disabled:bg-[#f5f7ff] sm:py-4 sm:text-lg"
+        placeholder="Escanear o buscar..."
+        className="w-full rounded-2xl border-2 border-[#c7d2fe] bg-white px-4 py-3.5 pr-3 text-base text-pos-ink placeholder:text-pos-muted focus:border-[#818cf8] focus:outline-none focus:ring-2 focus:ring-[#e0e7ff] disabled:cursor-not-allowed disabled:bg-[#f5f7ff] sm:py-4 sm:pr-20 sm:text-lg"
         autoComplete="off"
       />
-      <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-pos-muted">
+      <div className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-sm text-pos-muted sm:block">
         Enter ↵
       </div>
     </div>

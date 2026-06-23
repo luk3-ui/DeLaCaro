@@ -12,10 +12,22 @@
   --font-inter: "Inter", system-ui, sans-serif;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-nunito);
   -webkit-font-smoothing: antialiased;
   background-color: var(--color-pos-bg);
   color: var(--color-pos-ink);
+  overflow-x: hidden;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+#root {
+  min-height: 100dvh;
 }

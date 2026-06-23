@@ -17,14 +17,14 @@ export default function Cart() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="divide-y divide-[#f0f0f8]">
+      <div>
         {items.map((item) => (
           <CartItem key={item.id} item={item} />
         ))}
       </div>
       <div className="mt-4 flex items-center justify-between border-t-2 border-[#e5e7eb] pt-4">
-        <span className="text-lg font-semibold text-pos-ink">TOTAL</span>
-        <span className="text-2xl font-bold text-[#5b6bf5]">{formatCurrency(total)}</span>
+        <span className="text-base font-semibold text-pos-ink sm:text-lg">TOTAL</span>
+        <span className="text-xl font-bold text-[#5b6bf5] sm:text-2xl">{formatCurrency(total)}</span>
       </div>
     </div>
   );
