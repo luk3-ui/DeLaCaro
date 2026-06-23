@@ -6,10 +6,41 @@ import MainNav from './MainNav';
 type Period = 'day' | 'week' | 'month';
 
 const periods: { id: Period; label: string }[] = [
-  { id: 'day', label: 'Day' },
-  { id: 'week', label: 'Week' },
-  { id: 'month', label: 'Month' },
+  { id: 'day', label: 'Día' },
+  { id: 'week', label: 'Semana' },
+  { id: 'month', label: 'Mes' },
 ];
+
+function PeriodToggle({
+  period,
+  onPeriodChange,
+  className = '',
+}: {
+  period: Period;
+  onPeriodChange?: (period: Period) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`inline-flex items-center gap-0.5 rounded-[12px] bg-pos-nav p-1 md:gap-1 md:rounded-[14px] ${className}`}
+    >
+      {periods.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          onClick={() => onPeriodChange?.(p.id)}
+          className={`flex-1 rounded-[8px] px-2 py-2 text-xs font-bold transition-colors md:flex-none md:rounded-[10px] md:px-5 md:py-2 md:text-sm ${
+            period === p.id
+              ? 'bg-gradient-to-br from-[#2d2b6b] to-[#5b6bf5] text-white shadow-sm'
+              : 'text-pos-muted hover:text-pos-ink'
+          }`}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function BellIcon() {
   return (
@@ -54,33 +85,31 @@ export default function AppHeader({ period = 'month', onPeriodChange }: AppHeade
 
   if (isHome) {
     return (
-      <header className="w-full py-3 sm:py-5">
-        <div className={`${pageShellClass} flex flex-col gap-3`}>
-          <div className="flex min-w-0 items-start justify-between gap-3">
+      <header className="w-full py-3 md:py-5">
+        <div
+          className={`${pageShellClass} flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4`}
+        >
+          <div className="flex min-w-0 items-start justify-between gap-3 md:shrink-0 md:justify-start">
             <div className="min-w-0">
-              <h1 className="text-xl font-bold text-pos-ink sm:text-2xl">Sistema</h1>
-              <p className="truncate text-xs font-medium text-[#9999bb] sm:text-sm">
+              <h1 className="text-xl font-bold text-pos-ink md:text-2xl">Sistema</h1>
+              <p className="truncate text-xs font-medium text-[#9999bb] md:text-sm">
                 {formatHeaderDate()}
               </p>
             </div>
-            <UserActions />
+            <div className="md:hidden">
+              <UserActions />
+            </div>
           </div>
 
-          <div className="inline-flex w-full max-w-full items-center gap-0.5 rounded-[12px] bg-pos-nav p-1 sm:w-auto sm:gap-1 sm:rounded-[14px]">
-            {periods.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onPeriodChange?.(p.id)}
-                className={`flex-1 rounded-[8px] px-2 py-2 text-xs font-bold transition-colors sm:flex-none sm:rounded-[10px] sm:px-5 sm:py-2 sm:text-sm ${
-                  period === p.id
-                    ? 'bg-gradient-to-br from-[#2d2b6b] to-[#5b6bf5] text-white shadow-sm'
-                    : 'text-pos-muted hover:text-pos-ink'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 md:shrink-0 md:gap-4">
+            <PeriodToggle
+              period={period}
+              onPeriodChange={onPeriodChange}
+              className="w-full md:w-auto"
+            />
+            <div className="hidden md:block">
+              <UserActions />
+            </div>
           </div>
         </div>
       </header>
@@ -88,19 +117,24 @@ export default function AppHeader({ period = 'month', onPeriodChange }: AppHeade
   }
 
   return (
-    <header className="w-full py-3 sm:py-5">
-      <div className={`${pageShellClass} flex flex-col gap-3 sm:gap-4`}>
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <Link to="/" className="min-w-0 shrink">
-            <h1 className="text-lg font-bold text-pos-ink sm:text-2xl">Sistema</h1>
-            <p className="truncate text-xs font-medium text-[#9999bb] sm:text-sm">
-              {formatHeaderDate()}
-            </p>
-          </Link>
-          <UserActions />
+    <header className="w-full py-3 md:py-5">
+      <div
+        className={`${pageShellClass} grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-3 md:grid-cols-[auto_1fr_auto] md:gap-x-8 md:gap-y-0 lg:gap-x-12`}
+      >
+        <Link to="/" className="min-w-0 shrink-0 md:col-start-1">
+          <h1 className="text-lg font-bold text-pos-ink md:text-2xl">Sistema</h1>
+          <p className="truncate text-xs font-medium text-[#9999bb] md:text-sm">
+            {formatHeaderDate()}
+          </p>
+        </Link>
+
+        <div className="col-span-2 flex justify-center md:col-span-1 md:col-start-2 md:row-start-1">
+          <MainNav />
         </div>
 
-        <MainNav />
+        <div className="col-start-2 row-start-1 justify-self-end md:col-start-3">
+          <UserActions />
+        </div>
       </div>
     </header>
   );

@@ -43,14 +43,14 @@ export default function MainNav() {
   const active = resolveSection(pathname);
 
   return (
-    <nav className="flex w-full items-center gap-0.5 rounded-[12px] bg-pos-nav p-1 sm:gap-1 sm:rounded-[14px]">
+    <nav className="flex w-full items-center gap-0.5 rounded-[12px] bg-pos-nav p-1 md:w-auto md:gap-1 md:rounded-[14px]">
       {navItems.map((item) => {
         const isActive = active === item.id;
         return (
           <Link
             key={item.id}
             to={item.path}
-            className={`flex-1 rounded-[8px] px-1 py-2 text-center text-xs font-bold transition-colors sm:flex-none sm:rounded-[10px] sm:px-5 sm:text-sm ${
+            className={`flex-1 rounded-[8px] px-1 py-2 text-center text-xs font-bold transition-colors md:flex-none md:rounded-[10px] md:px-4 md:py-2 md:text-sm lg:px-5 ${
               isActive ? item.activeClass : 'text-pos-muted hover:text-pos-ink'
             }`}
           >
